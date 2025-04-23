@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Spin the Wheel - Premium UI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #f0f4f7, #d9e2f1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 30px;
+      color: #2c3e50;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 420px;
+      aspect-ratio: 1 / 1;
+      margin-bottom: 40px;
+      box-shadow: 0 6px 40px rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      overflow: visible;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 50%;
+    }
+
+    .arrow {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%) rotate(0deg);
+      width: 0;
+      height: 0;
+      border-left: 25px solid transparent;
+      border-right: 25px solid transparent;
+      border-top: 50px solid #ff7675;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+      z-index: 5;
+    }
+
+    .spin-button {
+      padding: 18px 45px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(145deg, #3498db, #2980b9);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      transition: background 0.3s ease, transform 0.2s ease;
+      margin-top: 20px;
+    }
+
+    .spin-button:hover {
+      background: linear-gradient(145deg, #2980b9, #3498db);
+      transform: scale(1.05);
+    }
+
+    .spin-button:active {
+      transform: scale(0.98);
+    }
+
+    .spin-button:focus {
+      outline: none;
+    }
+
+    /* Modal Popup */
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+      display: none; /* Initially hidden */
+      text-align: center;
+      z-index: 10;
+    }
+
+    .popup h2 {
+      font-size: 1.5rem;
+      color: #333;
+    }
+
+    .popup button {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background-color 0.3s;
+    }
+
+    .popup button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Spin the Wheel!</h1>
+
+  <div class="wheel-wrapper">
+    <div class="arrow"></div>
+    <canvas id="wheel" width="400" height="400"></canvas>
+  </div>
+
+  <button class="spin-button" onclick="spin()">SPIN</button>
+
+  <!-- Popup Modal -->
+  <div class="popup" id="popup">
+    <h2 id="resultText"></h2>
+    <button onclick="closePopup()">Close</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('wheel');
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = 190;
+
+    const prizes = [
+      'Gift Card', 'Free Coffee', '10% OFF', 'Try Again',
+      'Bonus Item', 'Free Shipping', 'Mystery Box', 'VIP Access'
+    ];
+
+    const colors = [
+      '#e74c3c', '#9b59b6', '#3498db', '#1abc9c',
+      '#2ecc71', '#f39c12', '#d35400', '#7f8c8d'
+    ];
+
+    let angle = 0;
+    let spinning = false;
+
+    function drawWheel() {
+      const arc = 2 * Math.PI / prizes.length;
+      for (let i = 0; i < prizes.length; i++) {
+        const startAngle = angle + i * arc;
+        const endAngle = startAngle + arc;
+
+        const grad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+        grad.addColorStop(0, colors[i]);
+        grad.addColorStop(1, colors[i]);
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 16px Poppins";
+        ctx.fillText(prizes[i], radius - 15, 10);
+        ctx.restore();
+      }
+    }
+
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+
+      const spinAngle = Math.random() * 360 + 360 * 5;
+      const duration = 5000;
+      const start = performance.now();
+
+      function animate(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 3);
+        const currentAngle = (spinAngle * easeOut) * Math.PI / 180;
+        angle = currentAngle;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawWheel();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          const arc = 2 * Math.PI / prizes.length;
+          const correctedAngle = (angle + Math.PI / 2) % (2 * Math.PI);
+          const index = Math.floor(prizes.length - (correctedAngle / arc)) % prizes.length;
+          const prize = prizes[index >= 0 ? index : index + prizes.length];
+          showPopup(prize);
+          spinning = false;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function showPopup(result) {
+      const popup = document.getElementById('popup');
+      const resultText = document.getElementById('resultText');
+      resultText.textContent = `🎉 You got: ${result}`;
+      popup.style.display = 'block';
+    }
+
+    function closePopup() {
+      const popup = document.getElementById('popup');
+      popup.style.display = 'none';
+    }
+
+    drawWheel();
+  </script>
+
+</body>
+</html>
+
